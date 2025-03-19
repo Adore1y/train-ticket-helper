@@ -7,10 +7,11 @@
     "storage",
     "notifications",
     "tabs",
-    "scripting"
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
-    "https://www.12306.cn/*"
+    "https://*.12306.cn/*"
   ],
   "action": {
     "default_popup": "popup/popup.html",
@@ -26,8 +27,9 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.12306.cn/*"],
-      "js": ["content/content.js"]
+      "matches": ["https://*.12306.cn/*"],
+      "js": ["content/content.js"],
+      "run_at": "document_end"
     }
   ],
   "icons": {
