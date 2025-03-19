@@ -23,22 +23,6 @@ let isGrabbing = false;
 let grabInterval = null;
 let currentParams = null;
 
-// 用于测试后台脚本是否正常工作
-function testBackgroundScript() {
-    console.log('后台脚本测试：正常工作中');
-    return true;
-}
-
-// 监听扩展安装
-chrome.runtime.onInstalled.addListener(function() {
-    console.log('铁路抢票助手已安装/更新');
-});
-
-// 确保 service worker 在第一次加载完成时发送自身状态
-chrome.runtime.onStartup.addListener(function() {
-    console.log('浏览器启动，服务已就绪');
-});
-
 // 监听来自popup的消息
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
     logDebug(`收到消息: ${JSON.stringify(message)} 来自: ${sender.id || 'unknown'}`);
@@ -62,20 +46,32 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
         return true;
     }
     
-    // 对于其他请求，先记录后续处理
-    if (message && message.action) {
-        logDebug(`处理${message.action}请求`);
+    try {
+        // 处理其他请求
+        if (message.action === 'startGrabbing') {
+            startGrabbing(message.params);
+            sendResponse({ success: true });
+        } else if (message.action === 'stopGrabbing') {
+            stopGrabbing();
+            sendResponse({ success: true });
+        } else {
+            // 未知请求
+            logDebug(`未知请求: ${message.action}`);
+            sendResponse({ success: false, error: '未知请求' });
+        }
+    } catch (error) {
+        logDebug(`处理消息出错: ${error.message}`);
+        sendResponse({ success: false, error: error.message });
     }
     
-    // 为了保持消息通道开放，返回true
-    return true;
+    return true; // 保持消息通道开放
 });
 
 // 开始抢票
 function startGrabbing(params) {
-    console.log('开始抢票，参数:', params);
+    logDebug(`开始抢票，参数: ${JSON.stringify(params)}`);
     if (isGrabbing) {
-        console.log('已经在抢票中');
+        logDebug('已经在抢票中');
         return;
     }
     
@@ -88,7 +84,7 @@ function startGrabbing(params) {
             url: 'https://www.12306.cn/index/'
         }, function(tab) {
             if (chrome.runtime.lastError) {
-                console.error('创建标签页出错:', chrome.runtime.lastError);
+                logDebug(`创建标签页出错: ${chrome.runtime.lastError.message}`);
                 isGrabbing = false;
                 sendLog('打开12306网站失败: ' + chrome.runtime.lastError.message);
                 return;
@@ -109,7 +105,7 @@ function startGrabbing(params) {
             sendLog('已打开12306网站，准备开始抢票...');
         });
     } catch (error) {
-        console.error('开始抢票过程中出错:', error);
+        logDebug(`开始抢票过程中出错: ${error.message}`);
         isGrabbing = false;
         sendLog('启动抢票失败: ' + error.message);
     }
@@ -117,7 +113,7 @@ function startGrabbing(params) {
 
 // 停止抢票
 function stopGrabbing() {
-    console.log('停止抢票');
+    logDebug('停止抢票');
     if (!isGrabbing) {
         return;
     }
@@ -134,12 +130,12 @@ function stopGrabbing() {
 
 // 抢票主流程
 function startGrabbingProcess(tabId) {
-    console.log('开始抢票流程，标签ID:', tabId);
+    logDebug(`开始抢票流程，标签ID: ${tabId}`);
     try {
         // 尝试发送消息给已经存在的内容脚本
         chrome.tabs.sendMessage(tabId, { action: 'ping' }, function(response) {
             if (chrome.runtime.lastError) {
-                console.log('内容脚本尚未加载，正在注入');
+                logDebug('内容脚本尚未加载，正在注入');
                 
                 // 注入内容脚本
                 chrome.scripting.executeScript({
@@ -147,22 +143,22 @@ function startGrabbingProcess(tabId) {
                     files: ['content/content.js']
                 }, function(results) {
                     if (chrome.runtime.lastError) {
-                        console.error('注入脚本失败:', chrome.runtime.lastError);
+                        logDebug(`注入脚本失败: ${chrome.runtime.lastError.message}`);
                         sendLog('注入脚本失败：' + chrome.runtime.lastError.message);
                         isGrabbing = false;
                         return;
                     }
                     
-                    console.log('脚本注入成功，设置定时刷新');
+                    logDebug('脚本注入成功，设置定时刷新');
                     startRefreshInterval(tabId);
                 });
             } else {
-                console.log('内容脚本已加载，直接开始监控');
+                logDebug('内容脚本已加载，直接开始监控');
                 startRefreshInterval(tabId);
             }
         });
     } catch (error) {
-        console.error('启动抢票流程出错:', error);
+        logDebug(`启动抢票流程出错: ${error.message}`);
         sendLog('启动抢票流程出错: ' + error.message);
         isGrabbing = false;
     }
@@ -197,7 +193,7 @@ function sendTicketCheckMessage(tabId) {
     
     chrome.tabs.get(tabId, function(tab) {
         if (chrome.runtime.lastError || !tab) {
-            console.error('标签页已关闭或出错:', chrome.runtime.lastError);
+            logDebug(`标签页已关闭或出错: ${chrome.runtime.lastError?.message || '标签页不存在'}`);
             stopGrabbing();
             sendLog('抢票标签页已关闭，已停止抢票');
             return;
@@ -209,7 +205,7 @@ function sendTicketCheckMessage(tabId) {
             params: currentParams
         }, function(response) {
             if (chrome.runtime.lastError) {
-                console.error('发送消息失败:', chrome.runtime.lastError);
+                logDebug(`发送消息失败: ${chrome.runtime.lastError.message}`);
                 // 不立即停止，因为可能是临时错误
                 sendLog('检查车票失败，将在下次刷新时重试');
                 return;
@@ -224,14 +220,14 @@ function sendTicketCheckMessage(tabId) {
 
 // 发送日志
 function sendLog(message) {
-    console.log('发送日志:', message);
+    logDebug(`发送日志: ${message}`);
     try {
         chrome.runtime.sendMessage({
             type: 'log',
             content: message
         });
     } catch (error) {
-        console.error('发送日志出错:', error);
+        logDebug(`发送日志出错: ${error.message}`);
     }
 }
 
