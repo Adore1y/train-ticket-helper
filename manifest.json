@@ -1,1 +1,38 @@
 {
+  "manifest_version": 3,
+  "name": "铁路抢票助手",
+  "version": "1.0.0",
+  "description": "12306网站抢票助手，支持自动刷新、多车次筛选、自动下单等功能",
+  "permissions": [
+    "storage",
+    "notifications",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.12306.cn/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.12306.cn/*"],
+      "js": ["content/content.js"]
+    }
+  ],
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  }
+}
