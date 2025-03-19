@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>铁路抢票助手 - 服务激活器</title>
+</head>
+<body>
+    <h1>铁路抢票助手服务激活器</h1>
+    <p>此页面用于激活和保持扩展的后台服务处于运行状态。</p>
+    <p>打开此页面后，您可以关闭它，后台服务将继续运行。</p>
+    <div id="status">正在检查服务状态...</div>
+    
+    <script>
+        // 发送ping消息以激活Service Worker
+        function pingBackgroundService() {
+            try {
+                chrome.runtime.sendMessage({
+                    action: 'ping'
+                }, function(response) {
+                    if (chrome.runtime.lastError) {
+                        document.getElementById('status').textContent = '服务未响应，请重新加载扩展';
+                        console.error('服务未响应:', chrome.runtime.lastError);
+                        return;
+                    }
+                    
+                    if (response && response.success) {
+                        document.getElementById('status').textContent = '服务已激活，运行正常';
+                    } else {
+                        document.getElementById('status').textContent = '服务响应异常';
+                    }
+                });
+            } catch (error) {
+                document.getElementById('status').textContent = '服务连接出错: ' + error.message;
+                console.error('连接出错:', error);
+            }
+        }
+        
+        // 页面加载完成后立即激活
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(pingBackgroundService, 500);
+            
+            // 定期发送激活信号
+            setInterval(pingBackgroundService, 25000);
+        });
+    </script>
+</body>
+</html> 

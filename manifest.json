@@ -22,7 +22,8 @@
     }
   },
   "background": {
-    "service_worker": "background/background.js"
+    "service_worker": "background/background.js",
+    "persistent": false
   },
   "content_scripts": [
     {
@@ -35,5 +36,11 @@
     "16": "assets/icons/icon16.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["service-activator.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

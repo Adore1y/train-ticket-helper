@@ -91,6 +91,28 @@ input[type="number"] {
     background-color: #da190b;
 }
 
+.btn.small {
+    padding: 5px 10px;
+    font-size: 14px;
+    flex: none;
+}
+
+.service-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 8px;
+    background-color: #f8f8f8;
+    border-radius: 4px;
+    border-left: 4px solid #4CAF50;
+}
+
+.service-status span {
+    font-size: 14px;
+    color: #666;
+}
+
 .log-container {
     margin-top: 20px;
     padding: 10px;

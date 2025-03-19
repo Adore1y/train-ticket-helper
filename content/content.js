@@ -9,6 +9,9 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
         if (message.action === 'checkTickets') {
             checkTickets(message.params);
             sendResponse({ success: true, log: '正在检查车票...' });
+        } else if (message.action === 'ping') {
+            // 响应ping请求
+            sendResponse({ success: true, pong: true });
         }
     } catch (error) {
         console.error('处理消息时出错:', error);

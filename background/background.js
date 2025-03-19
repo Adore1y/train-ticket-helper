@@ -1,6 +1,18 @@
 // 后台常驻进程
 console.log('抢票助手后台脚本已加载');
 
+// Service Worker 唤醒机制
+(function keepAlive() {
+    // 定期发送心跳信号，保持 Service Worker 活跃
+    const interval = 20000; // 20秒
+    setInterval(() => {
+        console.log('Service Worker 心跳信号', new Date().toLocaleTimeString());
+    }, interval);
+    
+    // 立即发送一次心跳，确保初始化时激活
+    console.log('Service Worker 初始心跳信号', new Date().toLocaleTimeString());
+})();
+
 // 存储抢票状态
 let isGrabbing = false;
 let grabInterval = null;
@@ -17,9 +29,14 @@ chrome.runtime.onInstalled.addListener(function() {
     console.log('铁路抢票助手已安装/更新');
 });
 
+// 确保 service worker 在第一次加载完成时发送自身状态
+chrome.runtime.onStartup.addListener(function() {
+    console.log('浏览器启动，服务已就绪');
+});
+
 // 监听来自popup的消息
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-    console.log('收到消息:', message);
+    console.log('收到消息:', message, '来自:', sender);
     try {
         if (message.action === 'startGrabbing') {
             startGrabbing(message.params);
@@ -29,6 +46,9 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
             sendResponse({ success: true });
         } else if (message.action === 'testBackground') {
             sendResponse({ success: true, working: testBackgroundScript() });
+        } else if (message.action === 'ping') {
+            // 简单的ping测试
+            sendResponse({ success: true, pong: true });
         }
     } catch (error) {
         console.error('处理消息时出错:', error);
