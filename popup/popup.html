@@ -1,1 +1,72 @@
-<!DOCTYPE html><html><body>抢票助手</body></html>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>铁路抢票助手</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <h1>铁路抢票助手</h1>
+        
+        <div class="form-group">
+            <label for="fromStation">出发站：</label>
+            <input type="text" id="fromStation" placeholder="如：北京西">
+        </div>
+        
+        <div class="form-group">
+            <label for="toStation">到达站：</label>
+            <input type="text" id="toStation" placeholder="如：广州南">
+        </div>
+        
+        <div class="form-group">
+            <label for="date">出发日期：</label>
+            <input type="date" id="date">
+        </div>
+        
+        <div class="form-group">
+            <label for="trainNumbers">车次号（可选）：</label>
+            <input type="text" id="trainNumbers" placeholder="如：G101,G103,G105">
+        </div>
+        
+        <div class="form-group">
+            <label>座位类型：</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" value="商务座"> 商务座</label>
+                <label><input type="checkbox" value="一等座"> 一等座</label>
+                <label><input type="checkbox" value="二等座"> 二等座</label>
+                <label><input type="checkbox" value="硬座"> 硬座</label>
+                <label><input type="checkbox" value="无座"> 无座</label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="refreshInterval">刷新间隔（秒）：</label>
+            <input type="number" id="refreshInterval" value="5" min="5" max="60">
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="autoSubmit"> 自动提交订单
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="autoSelectSeat"> 自动选座
+            </label>
+        </div>
+        
+        <div class="button-group">
+            <button id="startBtn" class="btn primary">开始抢票</button>
+            <button id="stopBtn" class="btn danger" disabled>停止抢票</button>
+        </div>
+        
+        <div class="log-container">
+            <h3>操作日志</h3>
+            <div id="logContent"></div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

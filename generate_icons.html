@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>生成图标</title>
+</head>
+<body>
+    <canvas id="icon128" width="128" height="128"></canvas>
+    <canvas id="icon48" width="48" height="48"></canvas>
+    <canvas id="icon16" width="16" height="16"></canvas>
+    <script>
+        function drawIcon(canvas) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+            
+            // 设置背景
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(0, 0, size, size);
+            
+            // 绘制火车形状
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 绘制车轮
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 绘制不同尺寸的图标
+        drawIcon(document.getElementById('icon128'));
+        drawIcon(document.getElementById('icon48'));
+        drawIcon(document.getElementById('icon16'));
+    </script>
+</body>
+</html> 
