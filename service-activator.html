@@ -1,7 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>铁路抢票助手 - 服务激活器</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f8f8f8;
+            border-left: 4px solid #4CAF50;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
     <h1>铁路抢票助手服务激活器</h1>
@@ -18,18 +40,22 @@
                 }, function(response) {
                     if (chrome.runtime.lastError) {
                         document.getElementById('status').textContent = '服务未响应，请重新加载扩展';
+                        document.getElementById('status').style.borderLeftColor = '#f44336';
                         console.error('服务未响应:', chrome.runtime.lastError);
                         return;
                     }
                     
                     if (response && response.success) {
                         document.getElementById('status').textContent = '服务已激活，运行正常';
+                        document.getElementById('status').style.borderLeftColor = '#4CAF50';
                     } else {
                         document.getElementById('status').textContent = '服务响应异常';
+                        document.getElementById('status').style.borderLeftColor = '#ff9800';
                     }
                 });
             } catch (error) {
                 document.getElementById('status').textContent = '服务连接出错: ' + error.message;
+                document.getElementById('status').style.borderLeftColor = '#f44336';
                 console.error('连接出错:', error);
             }
         }
