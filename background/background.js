@@ -1,17 +1,22 @@
 // 后台常驻进程
-console.log('抢票助手后台脚本已加载');
+console.log('铁路抢票助手后台脚本已加载', new Date().toLocaleTimeString());
 
-// Service Worker 唤醒机制
-(function keepAlive() {
-    // 定期发送心跳信号，保持 Service Worker 活跃
-    const interval = 20000; // 20秒
-    setInterval(() => {
-        console.log('Service Worker 心跳信号', new Date().toLocaleTimeString());
-    }, interval);
+// 调试信息
+let debugLogs = [];
+function logDebug(message) {
+    const time = new Date().toLocaleTimeString();
+    const logEntry = `[${time}] ${message}`;
+    console.log(logEntry);
+    debugLogs.push(logEntry);
     
-    // 立即发送一次心跳，确保初始化时激活
-    console.log('Service Worker 初始心跳信号', new Date().toLocaleTimeString());
-})();
+    // 保留最近的100条日志
+    if (debugLogs.length > 100) {
+        debugLogs.shift();
+    }
+}
+
+// 立即记录启动信息
+logDebug('后台服务启动');
 
 // 存储抢票状态
 let isGrabbing = false;
@@ -36,25 +41,34 @@ chrome.runtime.onStartup.addListener(function() {
 
 // 监听来自popup的消息
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-    console.log('收到消息:', message, '来自:', sender);
-    try {
-        if (message.action === 'startGrabbing') {
-            startGrabbing(message.params);
-            sendResponse({ success: true });
-        } else if (message.action === 'stopGrabbing') {
-            stopGrabbing();
-            sendResponse({ success: true });
-        } else if (message.action === 'testBackground') {
-            sendResponse({ success: true, working: testBackgroundScript() });
-        } else if (message.action === 'ping') {
-            // 简单的ping测试
-            sendResponse({ success: true, pong: true });
-        }
-    } catch (error) {
-        console.error('处理消息时出错:', error);
-        sendResponse({ success: false, error: error.message });
+    logDebug(`收到消息: ${JSON.stringify(message)} 来自: ${sender.id || 'unknown'}`);
+    
+    // 确保始终响应ping请求
+    if (message && message.action === 'ping') {
+        logDebug('响应ping请求');
+        sendResponse({ success: true, pong: true, time: new Date().toISOString() });
+        return true;
     }
-    return true; // 保持消息通道开放
+    
+    // 响应testBackground请求
+    if (message && message.action === 'testBackground') {
+        logDebug('响应测试请求');
+        sendResponse({ 
+            success: true, 
+            working: true, 
+            time: new Date().toISOString(),
+            logs: debugLogs.slice(-5) // 发送最近5条日志
+        });
+        return true;
+    }
+    
+    // 对于其他请求，先记录后续处理
+    if (message && message.action) {
+        logDebug(`处理${message.action}请求`);
+    }
+    
+    // 为了保持消息通道开放，返回true
+    return true;
 });
 
 // 开始抢票
@@ -220,3 +234,11 @@ function sendLog(message) {
         console.error('发送日志出错:', error);
     }
 }
+
+// 保持活跃状态
+setInterval(function() {
+    logDebug('心跳检查 - 服务正在运行');
+}, 25000);
+
+// 记录启动完成
+logDebug('后台脚本初始化完成');

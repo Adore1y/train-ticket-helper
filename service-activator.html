@@ -23,6 +23,39 @@
             border-left: 4px solid #4CAF50;
             font-size: 16px;
         }
+        .button-group {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .debug-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .retry-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -30,42 +63,154 @@
     <p>此页面用于激活和保持扩展的后台服务处于运行状态。</p>
     <p>打开此页面后，您可以关闭它，后台服务将继续运行。</p>
     <div id="status">正在检查服务状态...</div>
+    <div class="retry-info" id="retryInfo"></div>
+    
+    <div class="button-group">
+        <button id="refreshBtn">手动刷新</button>
+        <button id="reloadBtn">重载扩展</button>
+    </div>
+    
+    <div class="debug-info" id="debugInfo">调试信息将在这里显示...</div>
     
     <script>
+        // 显示调试信息
+        function logDebug(message) {
+            const debugInfo = document.getElementById('debugInfo');
+            const now = new Date().toLocaleTimeString();
+            debugInfo.textContent += `[${now}] ${message}\n`;
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+        }
+        
+        // 检查扩展状态
+        function checkExtensionStatus() {
+            logDebug('检查扩展状态...');
+            
+            // 检查扩展是否正常
+            try {
+                if (typeof chrome === 'undefined' || typeof chrome.runtime === 'undefined') {
+                    document.getElementById('status').textContent = '无法访问Chrome API，请确保在扩展页面中打开此文件';
+                    document.getElementById('status').style.borderLeftColor = '#f44336';
+                    logDebug('错误: 无法访问Chrome API');
+                    return false;
+                }
+                logDebug('Chrome API 正常');
+                return true;
+            } catch (error) {
+                document.getElementById('status').textContent = '扩展访问出错: ' + error.message;
+                document.getElementById('status').style.borderLeftColor = '#f44336';
+                logDebug('错误: ' + error.message);
+                return false;
+            }
+        }
+        
+        // 重试计数
+        let retryCount = 0;
+        const maxRetries = 5;
+        
         // 发送ping消息以激活Service Worker
         function pingBackgroundService() {
+            if (!checkExtensionStatus()) {
+                return;
+            }
+            
+            logDebug('正在发送ping消息...');
+            document.getElementById('status').textContent = '正在检查服务状态...';
+            
             try {
                 chrome.runtime.sendMessage({
                     action: 'ping'
                 }, function(response) {
                     if (chrome.runtime.lastError) {
-                        document.getElementById('status').textContent = '服务未响应，请重新加载扩展';
+                        const errorMsg = chrome.runtime.lastError.message;
+                        document.getElementById('status').textContent = '服务未响应: ' + errorMsg;
                         document.getElementById('status').style.borderLeftColor = '#f44336';
-                        console.error('服务未响应:', chrome.runtime.lastError);
+                        logDebug('错误: 服务未响应 - ' + errorMsg);
+                        
+                        // 自动重试
+                        if (retryCount < maxRetries) {
+                            retryCount++;
+                            const retryDelay = retryCount * 1000; // 递增延迟
+                            document.getElementById('retryInfo').textContent = 
+                                `服务未响应，${retryCount}/${maxRetries} 次重试，将在 ${retryDelay/1000} 秒后重试...`;
+                            logDebug(`安排第 ${retryCount} 次重试，${retryDelay/1000} 秒后...`);
+                            
+                            setTimeout(pingBackgroundService, retryDelay);
+                        } else {
+                            document.getElementById('retryInfo').textContent = 
+                                `已达到最大重试次数 (${maxRetries})，请尝试重载扩展或重启浏览器`;
+                            logDebug('达到最大重试次数');
+                        }
                         return;
                     }
+                    
+                    // 重置重试计数
+                    retryCount = 0;
+                    document.getElementById('retryInfo').textContent = '';
                     
                     if (response && response.success) {
                         document.getElementById('status').textContent = '服务已激活，运行正常';
                         document.getElementById('status').style.borderLeftColor = '#4CAF50';
+                        logDebug('成功: 服务已激活，响应: ' + JSON.stringify(response));
                     } else {
-                        document.getElementById('status').textContent = '服务响应异常';
+                        document.getElementById('status').textContent = '服务响应异常: ' + JSON.stringify(response);
                         document.getElementById('status').style.borderLeftColor = '#ff9800';
+                        logDebug('警告: 服务响应异常，响应: ' + JSON.stringify(response));
                     }
                 });
             } catch (error) {
                 document.getElementById('status').textContent = '服务连接出错: ' + error.message;
                 document.getElementById('status').style.borderLeftColor = '#f44336';
-                console.error('连接出错:', error);
+                logDebug('异常: ' + error.message);
+            }
+        }
+        
+        // 重载扩展
+        function reloadExtension() {
+            logDebug('尝试重载扩展...');
+            
+            try {
+                chrome.runtime.reload();
+                logDebug('已发送重载命令');
+            } catch (error) {
+                logDebug('重载扩展出错: ' + error.message);
+                alert('重载扩展失败: ' + error.message + '\n请手动前往 chrome://extensions/ 页面重新加载扩展');
+                
+                // 尝试打开扩展页面
+                try {
+                    chrome.tabs.create({url: 'chrome://extensions/'});
+                } catch (e) {
+                    // 忽略错误
+                }
             }
         }
         
         // 页面加载完成后立即激活
         document.addEventListener('DOMContentLoaded', function() {
+            logDebug('页面加载完成，开始检查服务...');
+            
+            // 添加按钮事件
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                retryCount = 0;
+                document.getElementById('retryInfo').textContent = '';
+                logDebug('手动刷新...');
+                pingBackgroundService();
+            });
+            
+            document.getElementById('reloadBtn').addEventListener('click', function() {
+                reloadExtension();
+            });
+            
+            // 初始检查
             setTimeout(pingBackgroundService, 500);
             
             // 定期发送激活信号
-            setInterval(pingBackgroundService, 25000);
+            setInterval(function() {
+                // 只有在未处于重试状态时才进行定期检查
+                if (retryCount === 0) {
+                    logDebug('定期检查...');
+                    pingBackgroundService();
+                }
+            }, 30000);
         });
     </script>
 </body>
